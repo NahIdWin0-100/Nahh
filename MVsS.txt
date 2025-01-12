@@ -1,0 +1,314 @@
+-- Ensure the script only runs in the specified game
+if game.PlaceId ~= 83352503841142 then
+    return
+end
+
+-- Load the UI library
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wizard"))()
+
+-- Create a new window with the title "Murderers vs Sherrifs"
+local Window = Library:NewWindow("Murderers vs Sherrifs")
+
+-- Create the "Main" tab
+local MainTab = Window:NewSection("Main")
+
+-- Create a button to buy the exclusive pack
+MainTab:CreateButton("Buy Exclusive Pack", function()
+    -- Buy DragonSword
+    local args1 = {
+        [1] = "DragonSword",
+        [2] = "0"
+    }
+    game:GetService("ReplicatedStorage").Buy:InvokeServer(unpack(args1))
+    
+    -- Buy DragonGun
+    local args2 = {
+        [1] = "DragonGun",
+        [2] = "0"
+    }
+    game:GetService("ReplicatedStorage").Buy:InvokeServer(unpack(args2))
+end)
+
+-- Create a textbox to get cash
+MainTab:CreateTextbox("Get Cash", function(text)
+    local number = tonumber(text)
+    local max_cash = 9223372036850000000
+
+    if number and number <= max_cash then
+        local args = {
+            [1] = "PumpkinScythe",
+            [2] = "-" .. tostring(number)
+        }
+        game:GetService("ReplicatedStorage").Buy:InvokeServer(unpack(args))
+    else
+        print("Invalid amount or exceeds maximum limit")
+    end
+end)
+
+local function loadHitboxAndESP()
+    -- Load the Orion UI library
+    local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/DenDenZZZ/Orion-UI-Library/refs/heads/main/source')))()
+
+    -- Create a new window with the title "Hitbox & ESP by: Xploiter_RBLX"
+    local Window = OrionLib:MakeWindow({
+        Name = "Hitbox & ESP by: Xploiter_RBLX",
+        HidePremium = false,
+        SaveConfig = false,
+        ConfigFolder = nil,
+        IntroEnabled = true,
+        IntroText = "Welcome, " .. game.Players.LocalPlayer.Name,
+        IntroIcon = "rbxassetid://82778010291487"
+    })
+
+    -- Create a new tab for hitbox controls
+    local HitboxTab = Window:MakeTab({
+        Name = "Hitbox Controls",
+        Icon = "rbxassetid://140587862516598",
+        PremiumOnly = false
+    })
+
+    -- Create a new tab for ESP controls
+    local ESPTab = Window:MakeTab({
+        Name = "ESP Controls",
+        Icon = "rbxassetid://140587862516598",
+        PremiumOnly = false
+    })
+
+    -- Variables to store hitbox settings
+    local defaultHitboxSize = Vector3.new(2, 2, 1)
+    local currentAdjustment = 1
+    local hitboxTransparency = 0.92
+    local hitboxColor = Color3.fromRGB(255, 0, 0)
+    local hitboxEnabled = false
+
+    -- Variables to store ESP settings
+    local espColor = Color3.fromRGB(255, 255, 255) -- White color for ESP
+    local espTransparency = 0.92
+    local espEnabled = false
+
+    -- Function to create or update hitbox
+    local function updateHitboxSize(player, adjustment, transparency, color)
+        if not player.Character or player == game.Players.LocalPlayer then return end
+        local character = player.Character
+        local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        local hitbox = character:FindFirstChild("Hitbox")
+
+        if not hitbox then
+            -- Create a new hitbox part if it doesn't exist
+            hitbox = Instance.new("Part")
+            hitbox.Name = "Hitbox"
+            hitbox.Anchored = true
+            hitbox.CanCollide = false
+            hitbox.Parent = character
+        end
+
+        -- Update hitbox size, position, transparency, and color
+        hitbox.Size = defaultHitboxSize * adjustment
+        hitbox.CFrame = humanoidRootPart.CFrame
+        hitbox.Transparency = transparency
+        hitbox.Color = color
+
+        -- Adjust the HumanoidRootPart size to match the hitbox size
+        humanoidRootPart.Size = hitbox.Size
+    end
+
+    -- Function to create ESP for a player
+    local function createESP(player)
+        if player == game.Players.LocalPlayer then return end
+        if not player.Character then return end
+
+        local character = player.Character
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") and not part:FindFirstChild("ESP") then
+                local box = Instance.new("BoxHandleAdornment")
+                box.Name = "ESP"
+                box.AlwaysOnTop = true
+                box.ZIndex = 10
+                box.Adornee = part
+                box.Size = part.Size
+                box.Transparency = espTransparency
+                box.Color3 = espColor
+                box.Parent = part
+            end
+        end
+    end
+
+    -- Function to remove ESP from a player
+    local function removeESP(player)
+        if player == game.Players.LocalPlayer then return end
+        if not player.Character then return end
+
+        for _, part in pairs(player.Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                local esp = part:FindFirstChild("ESP")
+                if esp then
+                    esp:Destroy()
+                end
+            end
+        end
+    end
+
+    -- Function to handle ESP toggling
+    local function toggleESP()
+        espEnabled = not espEnabled
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if espEnabled then
+                createESP(player)
+            else
+                removeESP(player)
+            end
+        end
+    end
+
+    -- Function to handle new players
+    local function onPlayerAdded(player)
+        player.CharacterAdded:Connect(function()
+            updateHitboxSize(player, currentAdjustment, hitboxTransparency, hitboxColor)
+            if espEnabled then
+                createESP(player)
+            end
+        end)
+    end
+
+    -- Connect existing players and new players to the hitbox and ESP handlers
+    for _, player in pairs(game.Players:GetPlayers()) do
+        onPlayerAdded(player)
+    end
+    game.Players.PlayerAdded:Connect(onPlayerAdded)
+
+    -- Update hitbox size on RunService Heartbeat
+    game:GetService("RunService").RenderStepped:Connect(function()
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player.Character then
+                local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+                local hitbox = player.Character:FindFirstChild("Hitbox")
+                if humanoidRootPart and hitbox then
+                    hitbox.CFrame = humanoidRootPart.CFrame
+                    hitbox.Transparency = hitboxEnabled and hitboxTransparency or 1
+                end
+            end
+        end
+    end)
+
+    -- Create a button to enable/disable the hitbox in the Hitbox tab
+    HitboxTab:AddButton({
+        Name = "Toggle Hitbox",
+        Callback = function()
+            hitboxEnabled = not hitboxEnabled
+            for _, player in pairs(game.Players:GetPlayers()) do
+                updateHitboxSize(player, currentAdjustment, hitboxTransparency, hitboxColor)
+            end
+        end    
+    })
+
+    -- Create a slider to adjust hitbox size in the Hitbox tab (up to 50)
+    HitboxTab:AddSlider({
+        Name = "Hitbox Size",
+        Min = 1,
+        Max = 50,
+        Default = 1,
+        Color = Color3.fromRGB(255, 255, 255),
+        Increment = 1,
+        Callback = function(value)
+            currentAdjustment = value
+            for _, player in pairs(game.Players:GetPlayers()) do
+                updateHitboxSize(player, currentAdjustment, hitboxTransparency, hitboxColor)
+            end
+        end
+    })
+
+    -- Create a slider to adjust hitbox transparency in the Hitbox tab
+    HitboxTab:AddSlider({
+        Name = "Hitbox Transparency",
+        Min = 0,
+        Max = 1,
+        Default = 0.92,
+        Color = Color3.fromRGB(255, 255, 255),
+        Increment = 0.01,
+        Callback = function(value)
+            hitboxTransparency = value
+            for _, player in pairs(game.Players:GetPlayers()) do
+                updateHitboxSize(player, currentAdjustment, hitboxTransparency, hitboxColor)
+            end
+        end
+    })
+
+    -- Create a color picker to adjust hitbox color in the Hitbox tab
+    HitboxTab:AddColorpicker({
+        Name = "Hitbox Color",
+        Default = Color3.fromRGB(255, 0, 0),
+        Callback = function(value)
+            hitboxColor = value
+            for _, player in pairs(game.Players:GetPlayers()) do
+                updateHitboxSize(player, currentAdjustment, hitboxTransparency, hitboxColor)
+            end
+        end
+    })
+
+    -- Create a button to toggle ESP in the ESP tab
+    ESPTab:AddButton({
+        Name = "Toggle ESP",
+        Callback = function()
+            toggleESP()
+        end    
+    })
+
+    -- Create a slider to adjust ESP transparency in the ESP tab
+    ESPTab:AddSlider({
+        Name = "ESP Transparency",
+        Min = 0,
+        Max = 1,
+        Default = 0.92,
+        Color = Color3.fromRGB(255, 255, 255),
+        Increment = 0.01,
+        Callback = function(value)
+            espTransparency = value
+            if espEnabled then
+                for _, player in pairs(game.Players:GetPlayers()) do
+                    removeESP(player)
+                    createESP(player)
+                end
+            end
+        end
+    })
+
+    -- Create a color picker to adjust ESP color in the ESP tab
+    ESPTab:AddColorpicker({
+        Name = "ESP Color",
+        Default = Color3.fromRGB(255, 255, 255), -- Default ESP color set to white
+        Callback = function(value)
+            espColor = value
+            if espEnabled then
+                for _, player in pairs(game.Players:GetPlayers()) do
+                    removeESP(player)
+                    createESP(player)
+                end
+            end
+        end
+    })
+
+    -- Never forget to add this when using Orion Library
+    OrionLib:Init()
+end
+
+-- Create a button for Hitbox & ESP script in the Main tab
+MainTab:CreateButton("Hitbox & ESP", function()
+    loadHitboxAndESP()
+end)
+
+-- Create the "YT: Xploiter_RBLX" tab
+local YTTab = Window:NewSection("YT: Xploiter_RBLX")
+
+-- Apply fonts and styles for better aesthetics
+local function applyStyles()
+    for _, v in pairs(game.CoreGui:GetDescendants()) do
+        if v:IsA("TextLabel") and v.Text == "Murderers vs Sherrifs" then
+            v.Font = Enum.Font.Bangers  -- Apply Bangers font to the title
+            v.TextSize = 20  -- Make the title font size smaller
+        elseif v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("TextBox") then
+            v.Font = Enum.Font.FredokaOne
+        end
+    end
+end
+
+applyStyles()
